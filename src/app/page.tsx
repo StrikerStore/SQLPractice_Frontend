@@ -57,25 +57,15 @@ export default function Home() {
             </div>
             
             <h1 className="text-5xl sm:text-7xl font-bold tracking-tighter mb-6 leading-[1.1] text-slate-800 relative">
-              <span 
-                className="inline-block opacity-0"
-                style={{ animation: 'fadeUpIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
-              >
+              <span className="inline-block animate-[fadeUpIn_1s_ease-out_forwards]">
                 Master SQL with
               </span>
               <br className="hidden sm:block" />
               <span 
-                className="inline-block opacity-0 relative"
-                style={{ animation: 'blurReveal 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards 300ms' }}
+                className="inline-block opacity-0 animate-[fadeUpIn_1.4s_ease-out_forwards]"
+                style={{ animationDelay: '300ms' }}
               >
-                {/* The text with iridescent shifting gradient */}
-                <span 
-                  className="inline-block text-transparent bg-clip-text pb-2 px-2 -mx-2 bg-[length:200%_auto]"
-                  style={{ 
-                    backgroundImage: 'linear-gradient(110deg, #1e293b, 42%, #6366f1, 50%, #1e293b, 58%)',
-                    animation: 'shimmerSlow 6s linear infinite'
-                  }}
-                >
+                <span className="inline-block text-transparent bg-clip-text pb-2 px-2 -mx-2 bg-[length:200%_auto] bg-[linear-gradient(110deg,#1e293b,42%,#6366f1,50%,#1e293b,58%)] animate-[shimmerSlow_6s_linear_infinite]">
                   Adaptive Intelligence
                 </span>
               </span>
