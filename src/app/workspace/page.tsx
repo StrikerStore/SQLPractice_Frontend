@@ -7,7 +7,7 @@ import {
   Database, Play, RotateCcw, Download, Table2, Lightbulb,
   ChevronRight, ChevronDown, BrainCircuit, Loader2, X, Eye,
   Wand2, Copy, Check, BookOpen, Shield, Search, SlidersHorizontal,
-  CheckCircle2, Circle,
+  CheckCircle2, Circle, Code2, ListChecks, SquareTerminal, ChevronUp,
 } from 'lucide-react';
 import { useQuestions } from '../../hooks/useQuestions';
 import { useSchema } from '../../hooks/useSchema';
@@ -112,6 +112,9 @@ export default function Workspace() {
 
   // ── Guide modal ───────────────────────────────────────────────────────────
   const [showGuide, setShowGuide] = useState(false);
+
+  // ── Mobile navigation ─────────────────────────────────────────────────────
+  const [mobileTab, setMobileTab] = useState<'questions' | 'task' | 'editor' | 'output'>('questions');
 
   // ─── Auto-select first question on load ──────────────────────────────────
   useEffect(() => {
@@ -378,7 +381,7 @@ export default function Workspace() {
           <select
             value={filterDb}
             onChange={(e) => setFilterDb(e.target.value)}
-            className="text-xs font-medium border border-slate-200 rounded-lg py-1.5 px-3 bg-white text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+            className="hidden md:block text-xs font-medium border border-slate-200 rounded-lg py-1.5 px-3 bg-white text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
             title="Filter by database"
           >
             <option value="all">All Databases</option>
@@ -398,7 +401,7 @@ export default function Workspace() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="hidden md:flex flex-1 overflow-hidden">
 
         {/* ── Left Panel ──────────────────────────────────────────────────── */}
         <aside className="w-72 border-r border-slate-200 bg-white flex flex-col flex-shrink-0">
@@ -905,6 +908,487 @@ export default function Workspace() {
             </>
           )}
         </main>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          MOBILE LAYOUT  (visible only on screens < md / 768 px)
+      ══════════════════════════════════════════════════════════════════ */}
+      <div className="flex md:hidden flex-1 flex-col overflow-hidden bg-slate-50 relative">
+
+        {/* ── QUESTIONS panel ─────────────────────────────────────────── */}
+        {mobileTab === 'questions' && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Search + filter strip */}
+            <div className="px-4 pt-3 pb-2 bg-white border-b border-slate-200 space-y-2.5 flex-shrink-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search questions…"
+                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              {/* Scrollable chip row: difficulty + databases */}
+              <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+                {(['all', 'easy', 'medium', 'hard'] as const).map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setFilterDiff(d)}
+                    className={`flex-shrink-0 px-3 py-1 text-[11px] font-bold rounded-full border transition-colors ${
+                      filterDiff === d
+                        ? d === 'all'    ? 'bg-slate-800 text-white border-slate-800'
+                          : d === 'easy'   ? 'bg-emerald-500 text-white border-emerald-500'
+                          : d === 'medium' ? 'bg-amber-500  text-white border-amber-500'
+                          : 'bg-rose-500 text-white border-rose-500'
+                        : 'bg-white text-slate-600 border-slate-200'
+                    }`}
+                  >
+                    {d === 'all' ? 'All' : d.charAt(0).toUpperCase() + d.slice(1)}
+                  </button>
+                ))}
+                <div className="w-px bg-slate-200 flex-shrink-0 self-stretch my-0.5" />
+                {databases.map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setFilterDb(filterDb === d ? 'all' : d)}
+                    className={`flex-shrink-0 px-3 py-1 text-[11px] font-bold rounded-full border transition-colors ${
+                      filterDb === d
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-slate-600 border-slate-200'
+                    }`}
+                  >
+                    {DB_LABELS[d] ?? d}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Stats bar */}
+            <div className="px-4 py-1.5 flex items-center justify-between bg-slate-50 border-b border-slate-100 flex-shrink-0">
+              <span className="text-[11px] text-slate-400 font-medium">
+                {filteredQuestions.length} question{filteredQuestions.length !== 1 ? 's' : ''}
+              </span>
+              {solvedThisSession.size > 0 && (
+                <span className="text-[11px] font-bold text-emerald-600">{solvedThisSession.size} solved ✓</span>
+              )}
+            </div>
+
+            {/* Question list */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {filteredQuestions.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 text-slate-300">
+                  <SlidersHorizontal className="w-10 h-10 mb-3" />
+                  <p className="text-sm text-slate-400">No questions match your filters</p>
+                </div>
+              )}
+              {filteredQuestions.map((q) => {
+                const isCurrent = currentQ?.id === q.id;
+                const isSolved = solvedThisSession.has(q.id);
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => { setCurrentQ(q); setMobileTab('task'); }}
+                    className={`w-full text-left p-4 rounded-2xl border transition-all active:scale-[0.98] ${
+                      isCurrent
+                        ? 'bg-indigo-50 border-indigo-200 shadow-sm'
+                        : 'bg-white border-slate-200 shadow-sm'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold text-slate-400">{q.id}</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${DIFF_PILL[q.difficulty]}`}>
+                          {q.difficulty.toUpperCase()}
+                        </span>
+                        <span className="text-[10px] text-indigo-500 font-semibold">{DB_LABELS[q.db] ?? q.db}</span>
+                      </div>
+                      {isSolved
+                        ? <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                        : isCurrent
+                          ? <Circle className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+                          : null
+                      }
+                    </div>
+                    <p className={`text-sm font-semibold leading-snug ${isCurrent ? 'text-indigo-800' : 'text-slate-800'}`}>{q.title}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">{q.topic}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── TASK panel ──────────────────────────────────────────────── */}
+        {mobileTab === 'task' && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {!currentQ ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                <ListChecks className="w-12 h-12 text-slate-200 mb-4" />
+                <p className="text-slate-500 font-medium mb-1">No question selected</p>
+                <p className="text-slate-400 text-sm mb-5">Pick one from the Questions tab to get started.</p>
+                <button
+                  onClick={() => setMobileTab('questions')}
+                  className="text-sm text-indigo-600 font-semibold border border-indigo-200 px-4 py-2 rounded-xl bg-indigo-50"
+                >
+                  Browse Questions →
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Question meta bar */}
+                <div className="px-4 py-3 bg-white border-b border-slate-200 flex items-center gap-2 flex-shrink-0 flex-wrap">
+                  <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[11px] font-bold border border-indigo-200">{currentQ.id}</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${DIFF_PILL[currentQ.difficulty]}`}>{currentQ.difficulty.toUpperCase()}</span>
+                  <span className="text-[11px] text-slate-500 font-medium">{currentQ.topic}</span>
+                  <span className="text-[11px] text-indigo-500 font-semibold ml-auto">{DB_LABELS[currentQ.db] ?? currentQ.db}</span>
+                </div>
+
+                {/* Scrollable content */}
+                <div className="flex-1 overflow-y-auto">
+                  <div className="p-4 space-y-4">
+                    <h2 className="text-xl font-bold text-slate-800 leading-snug">{currentQ.title}</h2>
+                    <p className="text-sm text-slate-600 leading-relaxed">{renderPrompt(currentQ.prompt)}</p>
+
+                    {/* Hint accordion */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <button
+                        onClick={() => setShowHint(!showHint)}
+                        className="w-full px-4 py-3 flex items-center justify-between text-sm font-semibold bg-white active:bg-slate-50"
+                      >
+                        <div className="flex items-center gap-2 text-amber-600"><Lightbulb className="w-4 h-4" />Hint</div>
+                        {showHint ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                      </button>
+                      {showHint && (
+                        <div className="px-4 py-3 bg-amber-50 border-t border-amber-100 text-sm text-slate-700 leading-relaxed">
+                          {currentQ.hint ?? 'No hint available for this question.'}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Table quick-peek */}
+                    {tables.length > 0 && (
+                      <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                        <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
+                          <Table2 className="w-3.5 h-3.5 text-indigo-500" />
+                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{currentQ.db} Schema</span>
+                        </div>
+                        <div className="p-3 flex flex-wrap gap-2">
+                          {tables.map((t) => (
+                            <span key={t.name} className="text-[11px] bg-white border border-slate-200 px-2.5 py-1 rounded-lg font-mono text-slate-700 shadow-sm">
+                              {t.name}
+                              <span className="text-slate-400 ml-1 text-[10px]">{t.columns.length}c</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <div className="p-4 bg-white border-t border-slate-200 flex-shrink-0">
+                  <button
+                    onClick={() => setMobileTab('editor')}
+                    className="w-full flex items-center justify-center gap-2 bg-indigo-600 active:bg-indigo-700 text-white py-3.5 rounded-2xl font-semibold text-sm shadow-[0_4px_14px_0_rgba(79,70,229,0.35)]"
+                  >
+                    <Code2 className="w-4 h-4" />
+                    Write Query
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── EDITOR panel ────────────────────────────────────────────── */}
+        {mobileTab === 'editor' && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {!currentQ ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                <SquareTerminal className="w-12 h-12 text-slate-200 mb-4" />
+                <p className="text-slate-500 font-medium mb-4">Select a question first</p>
+                <button onClick={() => setMobileTab('questions')} className="text-sm text-indigo-600 font-semibold border border-indigo-200 px-4 py-2 rounded-xl bg-indigo-50">Browse Questions →</button>
+              </div>
+            ) : (
+              <>
+                {/* Tappable question summary → goes to task */}
+                <button
+                  onClick={() => setMobileTab('task')}
+                  className="px-4 py-2.5 bg-white border-b border-slate-200 flex items-center gap-2 flex-shrink-0 active:bg-slate-50 text-left"
+                >
+                  <span className="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-indigo-200 flex-shrink-0">{currentQ.id}</span>
+                  <span className="text-xs font-semibold text-slate-700 flex-1 truncate">{currentQ.title}</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${DIFF_PILL[currentQ.difficulty]}`}>{currentQ.difficulty.toUpperCase()}</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
+                </button>
+
+                {/* Editor toolbar */}
+                <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SQL Editor</span>
+                  <div className="flex items-center gap-1">
+                    <button onClick={handleFormat} className="p-2 rounded-lg hover:bg-slate-200 text-slate-500 transition-colors" title="Format SQL">
+                      <Wand2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={handleReset} className="p-2 rounded-lg hover:bg-slate-200 text-slate-500 transition-colors" title="Reset">
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={handleShowSolution}
+                      disabled={!solutionUnlocked}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
+                        solutionUnlocked
+                          ? 'text-slate-600 border-slate-200 bg-white active:bg-slate-50'
+                          : 'text-slate-300 border-slate-100 cursor-not-allowed'
+                      }`}
+                    >
+                      <Eye className="w-3 h-3" />
+                      {solutionUnlocked ? 'Solution' : `${2 - wrongAttempts} more`}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Textarea SQL editor */}
+                <div className="flex-1 overflow-hidden bg-white">
+                  <textarea
+                    value={sqlText}
+                    onChange={(e) => { sqlTextRef.current = e.target.value; setSqlText(e.target.value); }}
+                    placeholder={'-- Write your SQL here\nSELECT ...'}
+                    spellCheck={false}
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    className="w-full h-full p-4 text-[13px] text-slate-800 bg-white resize-none focus:outline-none leading-relaxed placeholder-slate-300"
+                    style={{ fontFamily: "'SF Mono', 'Fira Code', 'Roboto Mono', 'Courier New', monospace" }}
+                  />
+                </div>
+
+                {/* Run action bar */}
+                <div className="px-3 py-3 bg-white border-t border-slate-200 flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => { handleExplain(); setMobileTab('output'); }}
+                    disabled={isRunning || explainLoading}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 disabled:opacity-50 active:bg-slate-100 transition-colors flex-shrink-0"
+                  >
+                    {explainLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Shield className="w-3.5 h-3.5" />}
+                    Explain
+                  </button>
+                  <button
+                    onClick={() => { handleRun('all'); setMobileTab('output'); }}
+                    disabled={isRunning}
+                    className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 active:bg-indigo-700 text-white py-2.5 rounded-xl font-semibold text-sm disabled:opacity-50 shadow-sm shadow-indigo-600/20 transition-colors"
+                  >
+                    {isRunning
+                      ? <><Loader2 className="w-4 h-4 animate-spin" />Running…</>
+                      : <><Play className="w-4 h-4 fill-current" />Run Query</>
+                    }
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── OUTPUT panel ────────────────────────────────────────────── */}
+        {mobileTab === 'output' && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Verdict banner */}
+            {hasRun && badge && (
+              <div className={`px-4 py-2.5 flex items-center justify-between flex-shrink-0 border-b border-slate-200 ${badge.cls}`}>
+                <span className="text-sm font-bold">{badge.label}</span>
+                <span className="text-xs font-medium opacity-80">{execData.timeMs}ms · {execData.rowCount} row{execData.rowCount !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+
+            {/* Sub-tab bar */}
+            <div className="flex border-b border-slate-200 bg-white flex-shrink-0 px-2 pt-1.5 gap-1">
+              {(['results', 'ai', 'explain'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setActiveTab(t)}
+                  className={`px-3 py-2 text-xs font-semibold rounded-t-lg border-b-2 transition-colors flex items-center gap-1.5 ${
+                    activeTab === t
+                      ? 'border-indigo-600 text-indigo-700 bg-white'
+                      : 'border-transparent text-slate-500'
+                  }`}
+                >
+                  {t === 'results' && 'Output'}
+                  {t === 'ai' && <><BrainCircuit className="w-3.5 h-3.5" />AI Coach</>}
+                  {t === 'explain' && 'Explain'}
+                </button>
+              ))}
+            </div>
+
+            {/* Content area */}
+            <div className="flex-1 overflow-y-auto p-3 text-sm">
+
+              {/* Results */}
+              {activeTab === 'results' && (
+                isRunning ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400">
+                    <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                    <span className="text-sm">Running query…</span>
+                  </div>
+                ) : !hasRun ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-300">
+                    <Play className="w-10 h-10 mb-3" />
+                    <span className="text-sm text-slate-400">Run your query to see results</span>
+                    <button onClick={() => setMobileTab('editor')} className="mt-4 text-sm text-indigo-600 font-semibold">← Back to Editor</button>
+                  </div>
+                ) : execData.error ? (
+                  <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex gap-2">
+                    <X className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
+                    <pre className="whitespace-pre-wrap break-words font-sans text-xs text-rose-700">{execData.error}</pre>
+                  </div>
+                ) : (
+                  <div>
+                    {execData.rows.length > 0 && (
+                      <div className="flex justify-end mb-2">
+                        <button onClick={handleExport} className="flex items-center gap-1 text-[10px] text-slate-500 border border-slate-200 px-2.5 py-1.5 rounded-lg">
+                          <Download className="w-3 h-3" />CSV
+                        </button>
+                      </div>
+                    )}
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                      <table className="w-full text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200">
+                            {(execData.columns.length ? execData.columns : Object.keys(execData.rows[0] ?? {})).map((col) => (
+                              <th key={col} className="px-3 py-2.5 text-left font-semibold text-slate-600 whitespace-nowrap border-r last:border-r-0 border-slate-200">{col}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {execData.rows.length === 0 ? (
+                            <tr><td colSpan={100} className="px-4 py-8 text-center text-slate-400 italic">No rows returned</td></tr>
+                          ) : execData.rows.map((row, i) => (
+                            <tr key={i} className="border-b last:border-b-0 border-slate-100">
+                              {(execData.columns.length ? execData.columns : Object.keys(row)).map((col) => (
+                                <td key={col} className="px-3 py-2 text-slate-700 font-mono whitespace-nowrap border-r last:border-r-0 border-slate-100 max-w-[160px] truncate">
+                                  {row[col] == null ? <span className="text-slate-300 italic">NULL</span> : String(row[col])}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {execData.truncated && <p className="text-[10px] text-slate-400 mt-2 text-center">Showing first 2 000 rows</p>}
+                  </div>
+                )
+              )}
+
+              {/* AI Coach */}
+              {activeTab === 'ai' && (
+                <div>
+                  {!hasRun && !showAI ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-slate-300">
+                      <BrainCircuit className="w-12 h-12 mb-3" />
+                      <span className="text-sm text-slate-400">Run a query first, then get AI feedback</span>
+                    </div>
+                  ) : !showAI ? (
+                    <div className="flex flex-col items-center gap-4 py-10">
+                      <p className="text-sm text-slate-500 text-center max-w-xs">Get OpenRouter-powered feedback on your approach and improvements.</p>
+                      <button
+                        onClick={handleAI}
+                        disabled={aiLoading}
+                        className="flex items-center gap-2 bg-purple-600 active:bg-purple-700 text-white px-6 py-3 rounded-2xl text-sm font-semibold shadow-sm disabled:opacity-70"
+                      >
+                        {aiLoading ? <><Loader2 className="w-4 h-4 animate-spin" />Analyzing…</> : <><BrainCircuit className="w-4 h-4" />Ask AI Coach</>}
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="bg-purple-500 p-1 rounded-lg text-white"><BrainCircuit className="w-3.5 h-3.5" /></div>
+                          <span className="text-xs font-semibold text-slate-700">AI Coach{aiModel ? ` · ${aiModel}` : ''}</span>
+                        </div>
+                        <div className="flex gap-1.5">
+                          {aiAnalysis && !aiError && (
+                            <button onClick={handleCopyAI} className="flex items-center gap-1 text-[10px] text-slate-500 border border-slate-200 px-2.5 py-1.5 rounded-lg">
+                              {aiCopied ? <><Check className="w-3 h-3 text-emerald-600" />Copied</> : <><Copy className="w-3 h-3" />Copy</>}
+                            </button>
+                          )}
+                          <button onClick={handleAI} disabled={aiLoading} className="flex items-center gap-1 text-[10px] text-slate-500 border border-slate-200 px-2.5 py-1.5 rounded-lg disabled:opacity-50">
+                            {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}Retry
+                          </button>
+                        </div>
+                      </div>
+                      {aiError ? (
+                        <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-2xl px-4 py-3">{aiError}</p>
+                      ) : (
+                        <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap bg-white rounded-2xl border border-slate-200 p-4">
+                          {aiAnalysis || <span className="text-slate-300 italic">No response returned.</span>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Explain */}
+              {activeTab === 'explain' && (
+                explainLoading ? (
+                  <div className="flex items-center justify-center py-16 gap-3 text-slate-400">
+                    <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+                    <span className="text-sm">Running EXPLAIN…</span>
+                  </div>
+                ) : explainError ? (
+                  <div className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-2xl px-4 py-3">{explainError}</div>
+                ) : explainData ? (
+                  <div className="bg-slate-900 rounded-2xl overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-700">
+                      <span className="text-[10px] font-mono text-slate-400">EXPLAIN FORMAT=JSON</span>
+                      <button onClick={() => navigator.clipboard.writeText(explainData ?? '')} className="text-[10px] text-slate-400 flex items-center gap-1">
+                        <Copy className="w-3 h-3" />Copy
+                      </button>
+                    </div>
+                    <pre className="p-4 text-[10px] font-mono text-emerald-300 overflow-auto leading-relaxed">{explainData}</pre>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 text-slate-300">
+                    <Shield className="w-10 h-10 mb-3" />
+                    <span className="text-sm text-slate-400">Use Explain in the editor</span>
+                    <button onClick={() => setMobileTab('editor')} className="mt-4 text-sm text-indigo-600 font-semibold">← Back to Editor</button>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Bottom Navigation Bar ───────────────────────────────────── */}
+        <nav className="flex border-t border-slate-200 bg-white flex-shrink-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          {([
+            { tab: 'questions' as const, icon: ListChecks,      label: 'Questions' },
+            { tab: 'task'      as const, icon: BookOpen,         label: 'Task'      },
+            { tab: 'editor'    as const, icon: SquareTerminal,   label: 'Editor'    },
+            { tab: 'output'    as const, icon: Play,             label: 'Output'    },
+          ]).map(({ tab, icon: Icon, label }) => {
+            const isActive = mobileTab === tab;
+            const showDot = tab === 'output' && hasRun && badge;
+            return (
+              <button
+                key={tab}
+                onClick={() => setMobileTab(tab)}
+                className="relative flex-1 flex flex-col items-center justify-center py-3 gap-0.5 transition-colors"
+              >
+                {showDot && (
+                  <span className={`absolute top-2 right-[calc(50%-14px)] w-2 h-2 rounded-full border-2 border-white ${
+                    execData.isCorrect ? 'bg-emerald-500' : execData.error ? 'bg-rose-500' : 'bg-amber-400'
+                  }`} />
+                )}
+                <Icon className={`w-5 h-5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <span className={`text-[10px] font-semibold ${isActive ? 'text-indigo-600' : 'text-slate-400'}`}>{label}</span>
+                {isActive && (
+                  <span className="absolute top-0 inset-x-2 h-0.5 bg-indigo-600 rounded-full" />
+                )}
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
       {/* ── Guide Modal ──────────────────────────────────────────────────── */}
