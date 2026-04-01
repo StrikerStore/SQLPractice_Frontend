@@ -35,9 +35,19 @@ export default function Home() {
               v1.0 is live
             </div>
             
-            <h1 className="text-5xl sm:text-7xl font-bold tracking-tighter mb-6 bg-gradient-to-br from-white to-zinc-500 bg-clip-text text-transparent leading-[1.1]">
-              Master SQL with <br className="hidden sm:block" />
-              Adaptive Intelligence
+            <h1 className="text-5xl sm:text-7xl font-bold tracking-tighter mb-6 leading-[1.1]">
+              <span className="inline-block animate-text-reveal opacity-0 text-transparent bg-clip-text bg-gradient-to-br from-white to-zinc-300 drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                Master SQL with
+              </span>
+              <br className="hidden sm:block" />
+              <span 
+                className="inline-block animate-blur-reveal opacity-0"
+                style={{ animationDelay: '300ms' }}
+              >
+                <span className="inline-block text-transparent bg-clip-text bg-[length:200%_auto] bg-[linear-gradient(110deg,#e4e4e7,42%,#a5b4fc,50%,#e4e4e7,58%)] animate-gradient-shift pb-2">
+                  Adaptive Intelligence
+                </span>
+              </span>
             </h1>
             
             <p className="text-lg sm:text-xl text-zinc-400 max-w-2xl mb-10 leading-relaxed font-light">

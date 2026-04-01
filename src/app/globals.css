@@ -24,3 +24,25 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+@theme {
+  --animate-text-reveal: text-reveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-blur-reveal: blur-reveal 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-gradient-shift: gradient-shift 8s linear infinite;
+
+  @keyframes text-reveal {
+    0% { opacity: 0; transform: translateY(20px); filter: blur(8px); }
+    100% { opacity: 1; transform: translateY(0); filter: blur(0px); }
+  }
+
+  @keyframes blur-reveal {
+    0% { opacity: 0; filter: blur(12px) brightness(1.5); transform: scale(0.97); }
+    100% { opacity: 1; filter: blur(0px) brightness(1); transform: scale(1); }
+  }
+
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+}
