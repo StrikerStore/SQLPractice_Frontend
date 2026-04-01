@@ -56,18 +56,10 @@ export default function Home() {
               v1.0 is live
             </div>
             
-            <h1 className="text-5xl sm:text-7xl font-bold tracking-tighter mb-6 leading-[1.1] text-slate-800 relative">
-              <span className="inline-block animate-[fadeUpIn_1s_ease-out_forwards]">
-                Master SQL with
-              </span>
-              <br className="hidden sm:block" />
-              <span 
-                className="inline-block opacity-0 animate-[fadeUpIn_1.4s_ease-out_forwards]"
-                style={{ animationDelay: '300ms' }}
-              >
-                <span className="inline-block text-transparent bg-clip-text pb-2 px-2 -mx-2 bg-[length:200%_auto] bg-[linear-gradient(110deg,#1e293b,42%,#6366f1,50%,#1e293b,58%)] animate-[shimmerSlow_6s_linear_infinite]">
-                  Adaptive Intelligence
-                </span>
+            <h1 className="text-5xl sm:text-7xl font-bold tracking-tighter mb-6 leading-[1.1] text-slate-800 relative z-10">
+              Master SQL with <br className="hidden sm:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-700">
+                Adaptive Intelligence
               </span>
             </h1>
             
