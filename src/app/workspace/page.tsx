@@ -168,7 +168,7 @@ export default function Workspace() {
 
   const handleReset = () => {
     if (!currentQ) return;
-    setSql(currentQ.starterSql ?? `-- ${currentQ.title}\nSELECT `);
+    setSql(`-- ${currentQ.title}\n`);
     setHasRun(false);
   };
 
