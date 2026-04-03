@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Database, Play, RotateCcw, Download, Table2, Lightbulb,
   ChevronRight, ChevronDown, BrainCircuit, Loader2, X, Eye,
   Wand2, BookOpen, Shield, Search, SlidersHorizontal,
   CheckCircle2, Circle, Code2, ListChecks, SquareTerminal, ChevronUp,
-  BookMarked, Copy,
+  BookMarked, Copy, LogOut,
 } from 'lucide-react';
+import { clearAuth, getUser } from '@/lib/auth';
 import { useQuestions } from '../../hooks/useQuestions';
 import { useSchema } from '../../hooks/useSchema';
 import { useBuildConcept } from '../../hooks/useBuildConcept';
@@ -46,6 +48,13 @@ const DB_LABELS: Record<string, string> = {
 };
 
 export default function Workspace() {
+  const router = useRouter();
+  const currentUser = getUser();
+
+  const handleLogout = useCallback(() => {
+    clearAuth();
+    router.push('/login');
+  }, [router]);
   // ── Question browser state ────────────────────────────────────────────────
   const { questions, databases, levels, loading: qLoading, error: qError } = useQuestions();
   const [filterDb, setFilterDb] = useState<string>('all');
@@ -333,8 +342,8 @@ export default function Workspace() {
       <header className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 bg-white shadow-sm flex-shrink-0 z-50">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="bg-indigo-600 p-1.5 rounded-lg"><Database className="w-4 h-4 text-white" /></div>
-            <span className="font-bold text-slate-900 text-sm hidden sm:block">SQL Practice</span>
+            <div className="bg-indigo-600 p-1.5 rounded-lg"><Code2 className="w-4 h-4 text-white" /></div>
+            <span className="font-bold text-slate-900 text-sm hidden sm:block">LearnMyCode – SQL</span>
           </Link>
           <div className="hidden sm:block w-px h-4 bg-slate-200" />
           {/* Database selector — quick filter in header */}
@@ -357,6 +366,19 @@ export default function Workspace() {
           </span>
           <button onClick={() => setShowGuide(true)} className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-indigo-700 border border-slate-200 hover:border-indigo-200 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg transition-colors">
             <BookOpen className="w-3.5 h-3.5" /><span className="hidden sm:inline">SQL Guide</span>
+          </button>
+          {currentUser && (
+            <span className="hidden md:block text-xs font-medium text-slate-500 border-l border-slate-200 pl-2">
+              {currentUser.full_name.split(' ')[0]}
+            </span>
+          )}
+          <button
+            onClick={handleLogout}
+            title="Sign out"
+            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-rose-600 border border-slate-200 hover:border-rose-200 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Sign Out</span>
           </button>
         </div>
       </header>

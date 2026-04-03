@@ -107,6 +107,8 @@ export default function Home() {
           <nav className="hidden md:flex gap-6 items-center">
             <Link href="#tracks"  className="text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors">Tracks</Link>
             <Link href="#how"     className="text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors">How it Works</Link>
+            <Link href="/login"   className="text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors">Sign In</Link>
+            <Link href="/signup"  className="text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-full transition-colors shadow-sm">Sign Up Free</Link>
           </nav>
         </div>
       </header>
@@ -149,19 +151,19 @@ export default function Home() {
               <div className="flex flex-row gap-4 fade-up fade-up-4">
                 <MagneticButton strength={0.36} radius={120}>
                   <Link
-                    href="/workspace"
+                    href="/signup"
                     className="group flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-full font-semibold transition-colors shadow-[0_4px_18px_0_rgba(79,70,229,0.42)] hover:shadow-[0_6px_24px_rgba(79,70,229,0.30)]"
                   >
-                    Start with SQL
+                    Get Started Free
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </MagneticButton>
                 <MagneticButton strength={0.30} radius={110}>
                   <Link
-                    href="#tracks"
+                    href="/login"
                     className="flex items-center justify-center px-8 py-4 rounded-full font-semibold border border-slate-200 bg-white hover:bg-slate-50 hover:border-indigo-200 transition-colors text-slate-600 shadow-sm hover:shadow-md"
                   >
-                    Browse Tracks
+                    Sign In
                   </Link>
                 </MagneticButton>
               </div>
