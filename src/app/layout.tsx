@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LearnMyCode - SQL",
-  description: "A structured, curriculum-based SQL learning platform by LearnMyCode.",
+  title: "LearnMyCode",
+  description: "Interactive, curriculum-based learning for tech skills. Practice SQL, Python, JavaScript and more — in your browser.",
 };
 
 export default function RootLayout({
