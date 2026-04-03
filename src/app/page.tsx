@@ -73,7 +73,7 @@ export default function Home() {
               </h1>
               
               <p className="text-xl text-slate-500 max-w-2xl mb-10 leading-relaxed font-medium">
-                Practice queries in sandboxed datasets. Our CAT-style engine adapts to your skill level, while AI provides personalized coaching on query optimization and performance.
+                Practice queries on real Retail and HR datasets across 10 structured levels — from basic SELECT to window functions. Step-by-step thinking guides help you build the right mental model before you write a line of SQL.
               </p>
               
               <div className="flex flex-row gap-4 w-auto">
@@ -113,7 +113,7 @@ export default function Home() {
                   </div>
                   <h3 className="text-xl font-bold text-slate-800 mb-3 tracking-tight">Real Datasets</h3>
                   <p className="text-slate-600 leading-relaxed text-sm font-medium">
-                    Practice with fully populated schemas across diverse domains like Retail, HR, and Aviation. View ER diagrams to understand relationships.
+                    Practice with fully populated Retail and HR schemas — 6 tables each, 3 500+ rows, real foreign key relationships, and indexed columns.
                   </p>
                 </div>
 
@@ -123,7 +123,7 @@ export default function Home() {
                   </div>
                   <h3 className="text-xl font-bold text-slate-800 mb-3 tracking-tight">Adaptive Difficulty</h3>
                   <p className="text-slate-600 leading-relaxed text-sm font-medium">
-                    The engine models Computerized Adaptive Testing (CAT). Ace a question and face a harder one; stumble and we'll ease the curve.
+                    10 curriculum levels from Basic SELECT to Advanced Window Functions and CTEs. Questions are sorted by concept so you build skill progressively.
                   </p>
                 </div>
 
@@ -131,9 +131,9 @@ export default function Home() {
                   <div className="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center mb-6 border border-purple-200/60 shadow-inner">
                     <BrainCircuit className="w-6 h-6 text-purple-600" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-800 mb-3 tracking-tight">AI Coach</h3>
+                  <h3 className="text-xl font-bold text-slate-800 mb-3 tracking-tight">Build Concept Guide</h3>
                   <p className="text-slate-600 leading-relaxed text-sm font-medium">
-                    Beyond pass/fail. Get OpenRouter-powered explanations on optimal queries, execution plans, and why your approach could be improved.
+                    Stuck? Load a step-by-step thinking guide instead of looking up the answer. Each guide walks you through how to reason about the query — one reveal at a time.
                   </p>
                 </div>
               </div>
@@ -160,7 +160,7 @@ export default function Home() {
             <h1 className="text-5xl font-bold tracking-tighter mb-5 leading-[1.05] text-slate-800">
               Master SQL <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-br from-indigo-600 to-indigo-500">
-                with AI.
+                step by step.
               </span>
             </h1>
             
@@ -219,9 +219,9 @@ export default function Home() {
                 <div className="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center mb-5 shadow-inner">
                   <BrainCircuit className="w-6 h-6 text-purple-600" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 mb-2 tracking-tight">AI Coach</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-2 tracking-tight">Build Concept Guide</h3>
                 <p className="text-slate-500 leading-relaxed text-sm font-medium">
-                  Beyond pass/fail. Get explanations on optimal queries, execution plans, and how to improve.
+                  Stuck? Reveal step-by-step hints instead of copying an answer. Build the mental model that makes the next question easy.
                 </p>
               </div>
 

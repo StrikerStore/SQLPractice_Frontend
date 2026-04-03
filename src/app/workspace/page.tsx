@@ -6,11 +6,13 @@ import Link from 'next/link';
 import {
   Database, Play, RotateCcw, Download, Table2, Lightbulb,
   ChevronRight, ChevronDown, BrainCircuit, Loader2, X, Eye,
-  Wand2, Copy, Check, BookOpen, Shield, Search, SlidersHorizontal,
+  Wand2, BookOpen, Shield, Search, SlidersHorizontal,
   CheckCircle2, Circle, Code2, ListChecks, SquareTerminal, ChevronUp,
+  BookMarked, Copy,
 } from 'lucide-react';
 import { useQuestions } from '../../hooks/useQuestions';
 import { useSchema } from '../../hooks/useSchema';
+import { useBuildConcept } from '../../hooks/useBuildConcept';
 import type { Question, Difficulty } from '../../types/question';
 import { format as formatSql } from 'sql-formatter';
 
@@ -41,18 +43,16 @@ function renderPrompt(text: string) {
 const DB_LABELS: Record<string, string> = {
   retail: 'Retail',
   hr: 'HR',
-  flights: 'Flights',
-  analytics: 'Analytics',
-  finance: 'Finance',
 };
 
 export default function Workspace() {
   // ── Question browser state ────────────────────────────────────────────────
-  const { questions, databases, topics, loading: qLoading, error: qError } = useQuestions();
+  const { questions, databases, levels, loading: qLoading, error: qError } = useQuestions();
   const [filterDb, setFilterDb] = useState<string>('all');
   const [filterDiff, setFilterDiff] = useState<Difficulty | 'all'>('all');
-  const [filterTopic, setFilterTopic] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const [expandedLevels, setExpandedLevels] = useState<Set<number>>(new Set([1]));
+  const [expandedLearningCard, setExpandedLearningCard] = useState<number | null>(null);
 
   // ── Active question ───────────────────────────────────────────────────────
   const [currentQ, setCurrentQ] = useState<Question | null>(null);
@@ -74,7 +74,7 @@ export default function Workspace() {
   useEffect(() => { schemaRef.current = tables; }, [tables]);
 
   // ── Execution state ───────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<'results' | 'ai' | 'explain'>('results');
+  const [activeTab, setActiveTab] = useState<'results' | 'build' | 'explain'>('results');
   const [isRunning, setIsRunning] = useState(false);
   const [hasRun, setHasRun] = useState(false);
   const [runningType, setRunningType] = useState<'all' | 'selected'>('all');
@@ -97,13 +97,8 @@ export default function Workspace() {
   const [showHint, setShowHint] = useState(false);
   const [solvedThisSession, setSolvedThisSession] = useState<Set<string>>(new Set());
 
-  // ── AI Coach ──────────────────────────────────────────────────────────────
-  const [showAI, setShowAI] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
-  const [aiModel, setAiModel] = useState<string | null>(null);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiCopied, setAiCopied] = useState(false);
+  // ── Build Concept ─────────────────────────────────────────────────────────
+  const buildConcept = useBuildConcept(currentQ?.id ?? null);
 
   // ── EXPLAIN ───────────────────────────────────────────────────────────────
   const [explainData, setExplainData] = useState<string | null>(null);
@@ -130,30 +125,39 @@ export default function Workspace() {
     if (editorRef.current) editorRef.current.setValue(starter);
     setHasRun(false);
     setShowHint(false);
-    setShowAI(false);
-    setAiAnalysis(null);
-    setAiError(null);
     setExplainData(null);
     setExplainError(null);
     setWrongAttempts(0);
     setExecData({ columns: [], rows: [], error: null, timeMs: 0, graded: false, isCorrect: null, verdict: 'ungraded', rowCount: 0, truncated: false });
     setActiveTab('results');
     setExpandedTable(null);
-  }, [currentQ]);
+    buildConcept.reset();
+  }, [currentQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Filtered question list ───────────────────────────────────────────────
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
       if (filterDb !== 'all' && q.db !== filterDb) return false;
       if (filterDiff !== 'all' && q.difficulty !== filterDiff) return false;
-      if (filterTopic !== 'all' && q.topic !== filterTopic) return false;
       if (search.trim()) {
         const s = search.toLowerCase();
-        return q.title.toLowerCase().includes(s) || q.topic.toLowerCase().includes(s);
+        const lvlTitle = levels.find(l => l.level_id === q.level_id)?.title ?? '';
+        return q.title.toLowerCase().includes(s) || lvlTitle.toLowerCase().includes(s);
       }
       return true;
     });
-  }, [questions, filterDb, filterDiff, filterTopic, search]);
+  }, [questions, filterDb, filterDiff, search, levels]);
+
+  // ─── Level helpers ────────────────────────────────────────────────────────
+  const toggleLevel = (id: number) => {
+    setExpandedLevels(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleLearningCard = (id: number) =>
+    setExpandedLearningCard(prev => prev === id ? null : id);
 
   const solutionUnlocked = wrongAttempts >= 2;
 
@@ -204,9 +208,6 @@ export default function Workspace() {
     setRunningType(type);
     setIsRunning(true);
     setHasRun(false);
-    setShowAI(false);
-    setAiAnalysis(null);
-    setAiError(null);
 
     try {
       const t0 = Date.now();
@@ -285,47 +286,6 @@ export default function Workspace() {
       else setExplainData(JSON.stringify(data.explain, null, 2));
     } catch { setExplainError('Could not reach the backend.'); }
     setExplainLoading(false);
-  };
-
-  // ─── AI Coach ────────────────────────────────────────────────────────────
-  const handleAI = async () => {
-    if (!currentQ) return;
-    setAiLoading(true);
-    setAiError(null);
-    setAiAnalysis(null);
-    setAiCopied(false);
-    setActiveTab('ai');
-    try {
-      const res = await fetch(`${API_BASE}/api/ai-coach`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sql: sqlText,
-          questionId: currentQ.id,
-          questionTitle: currentQ.title,
-          questionPrompt: currentQ.prompt,
-          canonicalSql: execData.canonicalSql ?? null,
-          executionError: execData.error,
-          graded: execData.graded,
-          isCorrect: execData.isCorrect ?? null,
-          verdict: execData.verdict,
-          rowCount: execData.rowCount,
-          canonicalRowCount: execData.canonicalRowCount ?? null,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setAiError(data.error ?? 'AI request failed'); }
-      else { setAiAnalysis(data.analysis ?? ''); setAiModel(data.model ?? null); setShowAI(true); }
-    } catch { setAiError('Could not reach the AI coach. Is the backend running?'); }
-    setAiLoading(false);
-    setShowAI(true);
-  };
-
-  const handleCopyAI = async () => {
-    if (!aiAnalysis) return;
-    await navigator.clipboard.writeText(aiAnalysis).catch(() => {});
-    setAiCopied(true);
-    setTimeout(() => setAiCopied(false), 2000);
   };
 
   // ─── CSV export ───────────────────────────────────────────────────────────
@@ -457,51 +417,90 @@ export default function Workspace() {
                     <option value="all">All databases</option>
                     {databases.map((d) => <option key={d} value={d}>{DB_LABELS[d] ?? d}</option>)}
                   </select>
-                  <select
-                    value={filterTopic}
-                    onChange={(e) => setFilterTopic(e.target.value)}
-                    className="flex-1 text-xs border border-slate-200 rounded-lg py-1 px-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white text-slate-700"
-                  >
-                    <option value="all">All topics</option>
-                    {topics.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
                 </div>
               </div>
 
-              {/* Question list */}
-              <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
+              {/* Level-grouped question list */}
+              <div className="flex-1 overflow-y-auto">
                 {filteredQuestions.length === 0 && (
                   <p className="text-center text-slate-400 text-xs py-8">No questions match your filters.</p>
                 )}
-                {filteredQuestions.map((q) => {
-                  const isCurrent = currentQ?.id === q.id;
-                  const isSolved = solvedThisSession.has(q.id);
+                {levels.map((lvl) => {
+                  const lvlQs = filteredQuestions.filter(q => q.level_id === lvl.level_id);
+                  if (lvlQs.length === 0) return null;
+                  const isOpen = expandedLevels.has(lvl.level_id);
+                  const isCardOpen = expandedLearningCard === lvl.level_id;
+                  const solvedCount = lvlQs.filter(q => solvedThisSession.has(q.id)).length;
                   return (
-                    <button
-                      key={q.id}
-                      onClick={() => setCurrentQ(q)}
-                      className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors group ${isCurrent ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-slate-50 border border-transparent hover:border-slate-200'}`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <div className="flex-shrink-0 mt-0.5">
-                          {isSolved
-                            ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                            : <Circle className={`w-3.5 h-3.5 ${isCurrent ? 'text-indigo-400' : 'text-slate-300'}`} />
-                          }
+                    <div key={lvl.level_id} className="border-b border-slate-100 last:border-0">
+                      {/* Level header */}
+                      <button
+                        onClick={() => toggleLevel(lvl.level_id)}
+                        className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {isOpen ? <ChevronDown className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
+                          <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded flex-shrink-0">L{lvl.level_id}</span>
+                          <span className="text-xs font-semibold text-slate-700 truncate">{lvl.title}</span>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className={`text-xs font-semibold truncate ${isCurrent ? 'text-indigo-800' : 'text-slate-700'}`}>{q.title}</p>
-                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${DIFF_PILL[q.difficulty]}`}>
-                              {q.difficulty.toUpperCase()}
-                            </span>
-                            <span className="text-[10px] text-slate-400 truncate">{q.topic}</span>
-                            <span className="text-[10px] text-slate-300">·</span>
-                            <span className="text-[10px] text-slate-400">{DB_LABELS[q.db] ?? q.db}</span>
+                        <span className="text-[10px] text-slate-400 flex-shrink-0 ml-1">{solvedCount}/{lvlQs.length}</span>
+                      </button>
+
+                      {isOpen && (
+                        <div>
+                          {/* Learning card toggle */}
+                          <button
+                            onClick={() => toggleLearningCard(lvl.level_id)}
+                            className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors"
+                          >
+                            <BookMarked className="w-3 h-3" />
+                            {isCardOpen ? 'Hide learning card' : 'Show learning card'}
+                          </button>
+
+                          {/* Inline learning card */}
+                          {isCardOpen && (
+                            <div className="mx-2 mb-2 p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-xs space-y-2">
+                              <p className="text-slate-700 leading-relaxed">{lvl.description.slice(0, 180)}{lvl.description.length > 180 ? '…' : ''}</p>
+                              <div className="pt-1 border-t border-indigo-100">
+                                <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1">Tip</p>
+                                <p className="text-slate-600 leading-relaxed">{lvl.tips.split('\n')[0]}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Questions in this level */}
+                          <div className="pb-1">
+                            {lvlQs.map((q) => {
+                              const isCurrent = currentQ?.id === q.id;
+                              const isSolved = solvedThisSession.has(q.id);
+                              return (
+                                <button
+                                  key={q.id}
+                                  onClick={() => setCurrentQ(q)}
+                                  className={`w-full text-left px-3 py-2 transition-colors group ${isCurrent ? 'bg-indigo-50 border-l-2 border-l-indigo-500' : 'hover:bg-slate-50 border-l-2 border-l-transparent'}`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex-shrink-0">
+                                      {isSolved
+                                        ? <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                        : <Circle className={`w-3 h-3 ${isCurrent ? 'text-indigo-400' : 'text-slate-300'}`} />
+                                      }
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className={`text-xs font-medium truncate ${isCurrent ? 'text-indigo-800' : 'text-slate-700'}`}>{q.title}</p>
+                                      <div className="flex items-center gap-1.5 mt-0.5">
+                                        <span className={`text-[9px] font-bold px-1 py-0.5 rounded border ${DIFF_PILL[q.difficulty]}`}>{q.difficulty.toUpperCase()}</span>
+                                        <span className="text-[9px] text-slate-400">{DB_LABELS[q.db] ?? q.db}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
-                      </div>
-                    </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -576,7 +575,7 @@ export default function Workspace() {
                       <span className="font-bold text-slate-500 text-[10px] uppercase tracking-wider flex-shrink-0">Task</span>
                       <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[11px] font-bold border border-indigo-200 flex-shrink-0">{currentQ.id}</span>
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 ${DIFF_PILL[currentQ.difficulty]}`}>{currentQ.difficulty.toUpperCase()}</span>
-                      <span className="text-[10px] text-slate-400 truncate">{currentQ.topic}</span>
+                      <span className="text-[10px] text-slate-400 truncate">{levels.find(l => l.level_id === currentQ.level_id)?.title ?? ''}</span>
                     </div>
                     <span className="text-[10px] text-slate-400 flex-shrink-0">{DB_LABELS[currentQ.db] ?? currentQ.db}</span>
                   </div>
@@ -760,14 +759,14 @@ export default function Workspace() {
               <div className="h-64 xl:h-72 flex flex-col bg-white flex-shrink-0">
                 {/* Tabs */}
                 <div className="flex border-b border-slate-200 bg-slate-50 px-2 pt-1.5 gap-1 flex-shrink-0">
-                  {(['results', 'ai', 'explain'] as const).map((t) => (
+                  {(['results', 'build', 'explain'] as const).map((t) => (
                     <button
                       key={t}
                       onClick={() => setActiveTab(t)}
                       className={`px-3 py-2 text-xs font-semibold rounded-t-lg transition-colors border-b-2 flex items-center gap-1.5 ${activeTab === t ? 'border-indigo-600 text-indigo-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'}`}
                     >
                       {t === 'results' && 'Output'}
-                      {t === 'ai' && <><BrainCircuit className="w-3.5 h-3.5" />AI Coach</>}
+                      {t === 'build' && <><BrainCircuit className="w-3.5 h-3.5" />Build Concept</>}
                       {t === 'explain' && 'Execution Plan'}
                     </button>
                   ))}
@@ -831,50 +830,53 @@ export default function Workspace() {
                     )
                   )}
 
-                  {/* AI Coach tab */}
-                  {activeTab === 'ai' && (
-                    <div className="max-w-2xl">
-                      {!hasRun && !showAI ? (
-                        <div className="flex flex-col items-center justify-center h-full text-slate-300 py-6">
-                          <BrainCircuit className="w-8 h-8 mb-2" />
-                          <span className="text-xs">Run your query first, then get AI feedback</span>
-                        </div>
-                      ) : !showAI ? (
-                        <div className="flex flex-col items-center gap-3 py-4">
-                          <p className="text-xs text-slate-600">Get AI feedback on your query approach, mistakes, and improvements.</p>
+                  {/* Build Concept tab */}
+                  {activeTab === 'build' && (
+                    <div className="max-w-2xl space-y-3">
+                      {buildConcept.steps.length === 0 && !buildConcept.loading && !buildConcept.error && (
+                        <div className="flex flex-col items-center gap-3 py-6">
+                          <BrainCircuit className="w-8 h-8 text-indigo-300" />
+                          <p className="text-xs text-slate-500 text-center max-w-xs">Load a step-by-step thinking guide for this question.</p>
                           <button
-                            onClick={handleAI}
-                            disabled={aiLoading}
-                            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-70"
+                            onClick={buildConcept.load}
+                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
                           >
-                            {aiLoading ? <><Loader2 className="w-4 h-4 animate-spin" />Analyzing…</> : <><BrainCircuit className="w-4 h-4" />Ask AI Coach</>}
+                            <BrainCircuit className="w-3.5 h-3.5" />Load Thinking Guide
                           </button>
                         </div>
-                      ) : (
-                        <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="bg-purple-500 p-1 rounded text-white"><BrainCircuit className="w-3.5 h-3.5" /></div>
-                              <span className="text-xs font-semibold text-slate-700">AI Coach{aiModel ? ` · ${aiModel}` : ''}</span>
-                            </div>
-                            <div className="flex gap-2">
-                              {aiAnalysis && !aiError && (
-                                <button onClick={handleCopyAI} className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-800 border border-slate-200 px-2 py-1 rounded transition-colors">
-                                  {aiCopied ? <><Check className="w-3 h-3 text-emerald-600" /><span className="text-emerald-600">Copied</span></> : <><Copy className="w-3 h-3" />Copy</>}
-                                </button>
-                              )}
-                              <button onClick={handleAI} disabled={aiLoading} className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-800 border border-slate-200 px-2 py-1 rounded transition-colors disabled:opacity-50">
-                                {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}Retry
-                              </button>
-                            </div>
+                      )}
+                      {buildConcept.loading && (
+                        <div className="flex items-center gap-2 py-6 justify-center text-slate-400">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-xs">Loading…</span>
+                        </div>
+                      )}
+                      {buildConcept.error && (
+                        <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{buildConcept.error}</p>
+                      )}
+                      {buildConcept.steps.slice(0, buildConcept.revealedCount).map((s) => (
+                        <div key={s.step} className="border border-indigo-100 bg-indigo-50/50 rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-bold bg-indigo-600 text-white rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0">{s.step}</span>
+                            <span className="text-xs font-semibold text-indigo-800">{s.title}</span>
                           </div>
-                          {aiError ? (
-                            <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{aiError}</p>
-                          ) : (
-                            <div className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">
-                              {aiAnalysis || <span className="text-slate-300 italic">No response returned.</span>}
-                            </div>
-                          )}
+                          <p className="text-xs text-slate-700 leading-relaxed ml-6">{s.body}</p>
+                        </div>
+                      ))}
+                      {buildConcept.steps.length > 0 && buildConcept.revealedCount < buildConcept.steps.length && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={buildConcept.revealNext}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />Next Step
+                          </button>
+                          <button
+                            onClick={() => { for (let i = buildConcept.revealedCount; i < buildConcept.steps.length; i++) buildConcept.revealNext(); }}
+                            className="text-xs text-slate-400 hover:text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            Show all
+                          </button>
                         </div>
                       )}
                     </div>
@@ -1011,7 +1013,7 @@ export default function Workspace() {
                       }
                     </div>
                     <p className={`text-sm font-semibold leading-snug ${isCurrent ? 'text-indigo-800' : 'text-slate-800'}`}>{q.title}</p>
-                    <p className="text-[11px] text-slate-400 mt-1">{q.topic}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">{levels.find(l => l.level_id === q.level_id)?.title ?? ''}</p>
                   </button>
                 );
               })}
@@ -1040,7 +1042,7 @@ export default function Workspace() {
                 <div className="px-4 py-3 bg-white border-b border-slate-200 flex items-center gap-2 flex-shrink-0 flex-wrap">
                   <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[11px] font-bold border border-indigo-200">{currentQ.id}</span>
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${DIFF_PILL[currentQ.difficulty]}`}>{currentQ.difficulty.toUpperCase()}</span>
-                  <span className="text-[11px] text-slate-500 font-medium">{currentQ.topic}</span>
+                  <span className="text-[11px] text-slate-500 font-medium">{levels.find(l => l.level_id === currentQ.level_id)?.title ?? ''}</span>
                   <span className="text-[11px] text-indigo-500 font-semibold ml-auto">{DB_LABELS[currentQ.db] ?? currentQ.db}</span>
                 </div>
 
@@ -1203,7 +1205,7 @@ export default function Workspace() {
 
             {/* Sub-tab bar */}
             <div className="flex border-b border-slate-200 bg-white flex-shrink-0 px-2 pt-1.5 gap-1">
-              {(['results', 'ai', 'explain'] as const).map((t) => (
+              {(['results', 'build', 'explain'] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setActiveTab(t)}
@@ -1214,7 +1216,7 @@ export default function Workspace() {
                   }`}
                 >
                   {t === 'results' && 'Output'}
-                  {t === 'ai' && <><BrainCircuit className="w-3.5 h-3.5" />AI Coach</>}
+                  {t === 'build' && <><BrainCircuit className="w-3.5 h-3.5" />Build Concept</>}
                   {t === 'explain' && 'Explain'}
                 </button>
               ))}
@@ -1279,50 +1281,53 @@ export default function Workspace() {
                 )
               )}
 
-              {/* AI Coach */}
-              {activeTab === 'ai' && (
-                <div>
-                  {!hasRun && !showAI ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-slate-300">
-                      <BrainCircuit className="w-12 h-12 mb-3" />
-                      <span className="text-sm text-slate-400">Run a query first, then get AI feedback</span>
-                    </div>
-                  ) : !showAI ? (
+              {/* Build Concept */}
+              {activeTab === 'build' && (
+                <div className="space-y-3">
+                  {buildConcept.steps.length === 0 && !buildConcept.loading && !buildConcept.error && (
                     <div className="flex flex-col items-center gap-4 py-10">
-                      <p className="text-sm text-slate-500 text-center max-w-xs">Get OpenRouter-powered feedback on your approach and improvements.</p>
+                      <BrainCircuit className="w-10 h-10 text-indigo-300" />
+                      <p className="text-sm text-slate-500 text-center max-w-xs">Load a step-by-step thinking guide for this question.</p>
                       <button
-                        onClick={handleAI}
-                        disabled={aiLoading}
-                        className="flex items-center gap-2 bg-purple-600 active:bg-purple-700 text-white px-6 py-3 rounded-2xl text-sm font-semibold shadow-sm disabled:opacity-70"
+                        onClick={buildConcept.load}
+                        className="flex items-center gap-2 bg-indigo-600 active:bg-indigo-700 text-white px-5 py-2.5 rounded-2xl text-sm font-semibold shadow-sm"
                       >
-                        {aiLoading ? <><Loader2 className="w-4 h-4 animate-spin" />Analyzing…</> : <><BrainCircuit className="w-4 h-4" />Ask AI Coach</>}
+                        <BrainCircuit className="w-4 h-4" />Load Thinking Guide
                       </button>
                     </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="bg-purple-500 p-1 rounded-lg text-white"><BrainCircuit className="w-3.5 h-3.5" /></div>
-                          <span className="text-xs font-semibold text-slate-700">AI Coach{aiModel ? ` · ${aiModel}` : ''}</span>
-                        </div>
-                        <div className="flex gap-1.5">
-                          {aiAnalysis && !aiError && (
-                            <button onClick={handleCopyAI} className="flex items-center gap-1 text-[10px] text-slate-500 border border-slate-200 px-2.5 py-1.5 rounded-lg">
-                              {aiCopied ? <><Check className="w-3 h-3 text-emerald-600" />Copied</> : <><Copy className="w-3 h-3" />Copy</>}
-                            </button>
-                          )}
-                          <button onClick={handleAI} disabled={aiLoading} className="flex items-center gap-1 text-[10px] text-slate-500 border border-slate-200 px-2.5 py-1.5 rounded-lg disabled:opacity-50">
-                            {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}Retry
-                          </button>
-                        </div>
+                  )}
+                  {buildConcept.loading && (
+                    <div className="flex items-center justify-center gap-2 py-12 text-slate-400">
+                      <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+                      <span className="text-sm">Loading&hellip;</span>
+                    </div>
+                  )}
+                  {buildConcept.error && (
+                    <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-2xl px-4 py-3">{buildConcept.error}</p>
+                  )}
+                  {buildConcept.steps.slice(0, buildConcept.revealedCount).map((s) => (
+                    <div key={s.step} className="border border-indigo-100 bg-indigo-50/50 rounded-2xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[11px] font-bold bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">{s.step}</span>
+                        <span className="text-sm font-semibold text-indigo-800">{s.title}</span>
                       </div>
-                      {aiError ? (
-                        <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-2xl px-4 py-3">{aiError}</p>
-                      ) : (
-                        <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap bg-white rounded-2xl border border-slate-200 p-4">
-                          {aiAnalysis || <span className="text-slate-300 italic">No response returned.</span>}
-                        </div>
-                      )}
+                      <p className="text-sm text-slate-700 leading-relaxed ml-7">{s.body}</p>
+                    </div>
+                  ))}
+                  {buildConcept.steps.length > 0 && buildConcept.revealedCount < buildConcept.steps.length && (
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={buildConcept.revealNext}
+                        className="flex items-center gap-1.5 text-sm font-semibold text-indigo-600 border border-indigo-200 px-4 py-2.5 rounded-2xl active:bg-indigo-50"
+                      >
+                        <ChevronRight className="w-4 h-4" />Next Step
+                      </button>
+                      <button
+                        onClick={() => { for (let i = buildConcept.revealedCount; i < buildConcept.steps.length; i++) buildConcept.revealNext(); }}
+                        className="text-sm text-slate-400 border border-slate-200 px-4 py-2.5 rounded-2xl active:bg-slate-50"
+                      >
+                        Show all
+                      </button>
                     </div>
                   )}
                 </div>

@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import type { Question, QuestionsResponse } from '../types/question';
+import type { Question, QuestionsResponse, Level, LevelsResponse } from '../types/question';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001';
 
 interface UseQuestionsState {
   questions: Question[];
   databases: string[];
-  topics: string[];
+  levels: Level[];
   loading: boolean;
   error: string | null;
   total: number;
@@ -18,14 +18,14 @@ export function useQuestions() {
   const [state, setState] = useState<UseQuestionsState>({
     questions: [],
     databases: [],
-    topics: [],
+    levels: [],
     loading: true,
     error: null,
     total: 0,
   });
 
-  // Cache full question list on first load
-  const cache = useRef<QuestionsResponse | null>(null);
+  const cacheQ = useRef<QuestionsResponse | null>(null);
+  const cacheL = useRef<LevelsResponse | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,18 +33,32 @@ export function useQuestions() {
     const load = async () => {
       setState((s) => ({ ...s, loading: true, error: null }));
       try {
-        // Load all questions once — filtering done client-side for snappy UX
-        if (!cache.current) {
-          const res = await fetch(`${API_BASE}/api/questions`);
-          if (!res.ok) throw new Error(`Server error ${res.status}`);
-          cache.current = (await res.json()) as QuestionsResponse;
+        // Load questions and levels in parallel
+        const promises: Promise<void>[] = [];
+
+        if (!cacheQ.current) {
+          promises.push(
+            fetch(`${API_BASE}/api/questions`)
+              .then((r) => { if (!r.ok) throw new Error(`Server error ${r.status}`); return r.json(); })
+              .then((d) => { cacheQ.current = d as QuestionsResponse; }),
+          );
         }
+        if (!cacheL.current) {
+          promises.push(
+            fetch(`${API_BASE}/api/questions/levels`)
+              .then((r) => { if (!r.ok) throw new Error(`Server error ${r.status}`); return r.json(); })
+              .then((d) => { cacheL.current = d as LevelsResponse; }),
+          );
+        }
+
+        await Promise.all(promises);
+
         if (!cancelled) {
           setState({
-            questions: cache.current.questions,
-            databases: cache.current.filters.databases,
-            topics: cache.current.filters.topics,
-            total: cache.current.count,
+            questions: cacheQ.current!.questions,
+            databases: cacheQ.current!.filters.databases,
+            levels: cacheL.current!.levels,
+            total: cacheQ.current!.count,
             loading: false,
             error: null,
           });
