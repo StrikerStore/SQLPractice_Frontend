@@ -33,7 +33,7 @@ export default function Home() {
             <div className="bg-indigo-600 p-1.5 rounded-lg shadow-sm">
               <Database className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold text-lg tracking-tight text-slate-800">SQL Trainer</span>
+            <span className="font-bold text-lg tracking-tight text-slate-800">LearnMyCode – SQL</span>
           </div>
           <nav className="flex gap-6 items-center">
             <Link href="#features" className="text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors">Features</Link>
@@ -165,7 +165,7 @@ export default function Home() {
             </h1>
             
             <p className="text-base text-slate-500 mb-8 leading-relaxed font-medium pr-4">
-              Practice queries in sandboxed datasets. Our CAT-style engine adapts to your skill level instantly.
+              Practice queries in sandboxed datasets across 10 structured levels — from basic SELECT to window functions.
             </p>
 
             <div className="flex flex-col gap-3 w-full relative z-20">
@@ -235,7 +235,7 @@ export default function Home() {
           <Code2 className="w-4 h-4 text-indigo-400" />
           <span className="font-semibold text-slate-600">Anonymous Practice Engine</span>
         </div>
-        <p>&copy; {new Date().getFullYear()} SQL CAT-Style Trainer. Built for the advanced learner.</p>
+        <p>&copy; {new Date().getFullYear()} LearnMyCode – SQL. Built for the serious learner.</p>
       </footer>
     </div>
   );

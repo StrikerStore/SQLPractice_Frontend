@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SQL CAT-Style Trainer",
-  description: "An adaptive, browser-first platform for mastering SQL.",
+  title: "LearnMyCode - SQL",
+  description: "A structured, curriculum-based SQL learning platform by LearnMyCode.",
 };
 
 export default function RootLayout({
