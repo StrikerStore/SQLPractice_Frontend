@@ -130,20 +130,20 @@ export default function SignupPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
 
           {/* Full Name */}
           <div>
             <FieldLabel>Full Name</FieldLabel>
             <input type="text" required value={form.full_name} onChange={update('full_name')}
-              placeholder="James Smith" className={inputCls} />
+              placeholder="James Smith" className={inputCls} autoComplete="name" />
           </div>
 
           {/* Email */}
           <div>
             <FieldLabel>Email Address</FieldLabel>
             <input type="email" required value={form.email} onChange={update('email')}
-              placeholder="you@example.com" className={inputCls} />
+              placeholder="you@example.com" className={inputCls} autoComplete="email" />
           </div>
 
           {/* Contact + City */}
@@ -151,12 +151,12 @@ export default function SignupPage() {
             <div>
               <FieldLabel>Contact / Phone</FieldLabel>
               <input type="tel" required value={form.contact} onChange={update('contact')}
-                placeholder="+91 98765 43210" className={inputCls} />
+                placeholder="+91 98765 43210" className={inputCls} autoComplete="tel" />
             </div>
             <div>
               <FieldLabel>City</FieldLabel>
               <input type="text" required value={form.city} onChange={update('city')}
-                placeholder="Mumbai" className={inputCls} />
+                placeholder="Mumbai" className={inputCls} autoComplete="address-level2" />
             </div>
           </div>
 
@@ -173,7 +173,7 @@ export default function SignupPage() {
           <div>
             <FieldLabel>College / University <span className="normal-case font-normal text-slate-400">(optional)</span></FieldLabel>
             <input type="text" value={form.college} onChange={update('college')}
-              placeholder="e.g. IIT Bombay, NMIMS, Any College Name" className={inputCls} />
+              placeholder="e.g. IIT Bombay, NMIMS, Any College Name" className={inputCls} autoComplete="organization" />
           </div>
 
           {/* Password */}
@@ -182,7 +182,7 @@ export default function SignupPage() {
             <div className="relative">
               <input type={showPw ? 'text' : 'password'} required minLength={8}
                 value={form.password} onChange={update('password')}
-                placeholder="Min. 8 characters" className={`${inputCls} pr-12`} />
+                placeholder="Min. 8 characters" className={`${inputCls} pr-12`} autoComplete="new-password" />
               <button type="button" tabIndex={-1}
                 onClick={() => setShowPw(p => !p)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
@@ -208,7 +208,7 @@ export default function SignupPage() {
             <div className="relative">
               <input type={showCpw ? 'text' : 'password'} required
                 value={form.confirmPw} onChange={update('confirmPw')}
-                placeholder="Repeat your password" className={`${inputCls} pr-12`} />
+                placeholder="Repeat your password" className={`${inputCls} pr-12`} autoComplete="new-password" />
               <button type="button" tabIndex={-1}
                 onClick={() => setShowCpw(p => !p)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
